@@ -8,3 +8,4 @@ mplfinance
 matplotlib
 gridstatus
 pyarrow
+lxml==5.3.0
