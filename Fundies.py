@@ -29,19 +29,18 @@ st.set_page_config(page_title="Fundies", layout="wide", initial_sidebar_state="c
 st.markdown("""
     <style>
     .stApp {
-        background-color: #0e1117;
-        color: #fafafa;
+        background-color:
+        color:
     }
     [data-testid="stHeader"] {
-        background-color: #0e1117;
+        background-color:
     }
     [data-testid="stSidebar"] {
-        background-color: #0e1117;
+        background-color:
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Auto-refresh once per hour at 16:30 past each hour CT
 def get_refresh_info():
     from zoneinfo import ZoneInfo
     now = datetime.now(ZoneInfo('America/Chicago'))
@@ -50,7 +49,7 @@ def get_refresh_info():
     
     
     current_seconds_into_hour = now.minute * 60 + now.second
-    target_seconds_into_hour = target_minute * 60 + target_second  # 990 seconds = 16:30
+    target_seconds_into_hour = target_minute * 60 + target_second
     
     if current_seconds_into_hour < target_seconds_into_hour:
         
@@ -67,7 +66,6 @@ def get_refresh_info():
 refresh_seconds, next_refresh_time = get_refresh_info()
 st.markdown(f'<meta http-equiv="refresh" content="{refresh_seconds}">', unsafe_allow_html=True)
 
-# Load from Streamlit secrets 
 baseurl = "https://api-markets.meteologica.com/api/v1/"
 
 
@@ -274,7 +272,6 @@ def fetch_ercot_wind_by_region(cache_time):
             if not df.empty:
                 df['deliveryDate'] = pd.to_datetime(df['deliveryDate']).dt.date
                 
-                # Handle hourEnding
                 if df['hourEnding'].dtype == 'object':
                     df['HE'] = df['hourEnding'].str.split(':').str[0].astype(int)
                 else:
@@ -283,7 +280,6 @@ def fetch_ercot_wind_by_region(cache_time):
                 
                 if 'postedDatetime' in df.columns:
                     df['postedDatetime'] = pd.to_datetime(df['postedDatetime'])
-                    # Keep only the most recent posted forecast for each date/hour
                     df = df.sort_values('postedDatetime', ascending=False)
                     df = df.drop_duplicates(subset=['deliveryDate', 'HE'], keep='first')
                     df = df.sort_values(['deliveryDate', 'HE'])
@@ -420,19 +416,18 @@ def fetch_outage_data(cache_time):
         return df, cache_time
     return None, cache_time
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour - Gist only updates at HE17 and HE01
+@st.cache_data(ttl=3600)
 def load_historical_cache():
     
     try:
         gist_url = st.secrets.get("gist", {}).get("snapshot_url")
         if gist_url:
-            # Add cache-busting parameter to avoid GitHub CDN caching issues
-            cache_buster = f"?cb={int(time.time() // 3600)}"  # Changes every hour
+            cache_buster = f"?cb={int(time.time() // 3600)}"
             response = requests.get(gist_url + cache_buster, timeout=30)
             if response.ok:
                 return response.json()
     except Exception as e:
-        pass  # Silently fail, return None
+        pass
     
     
     if CACHE_FILE.exists():
@@ -645,7 +640,6 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             'HE01_snapshot': {'captured_date': None, 'data': {}}
         }
 
-    # Check snapshot
     snapshot_captured = False
     
    
@@ -653,7 +647,6 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
         he17_captured_date = cache.get('HE17_snapshot', {}).get('captured_date')
         session_key = f"he17_captured_{today}"
         if he17_captured_date != str(today) and session_key not in st.session_state:
-            # Capture HE17 snapshot
             snapshot = create_snapshot_data(met_load_df, met_wind_df, met_solar_df, df, outage_df,
                                pjm_met_load_df, pjm_met_wind_df, pjm_met_solar_df, pjm_load_df, pjm_outage_df)
             cache['HE17_snapshot'] = {
@@ -665,12 +658,10 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             st.session_state[session_key] = True
             st.success(f"📸 Captured HE17 snapshot at {now.strftime('%I:%M %p')} CT")
     
-    # HE01 
     if current_hour == 0:
         he01_captured_date = cache.get('HE01_snapshot', {}).get('captured_date')
         session_key = f"he01_captured_{today}"
         if he01_captured_date != str(today) and session_key not in st.session_state:
-            # Capture HE01 snapshot
             snapshot = create_snapshot_data(met_load_df, met_wind_df, met_solar_df, df, outage_df,
                                pjm_met_load_df, pjm_met_wind_df, pjm_met_solar_df, pjm_load_df, pjm_outage_df)
             cache['HE01_snapshot'] = {
@@ -682,15 +673,12 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             st.session_state[session_key] = True
             st.success(f"📸 Captured HE01 snapshot at {now.strftime('%I:%M %p')} CT")
     
-    # Upload to Gist 
     if snapshot_captured:
         if upload_to_gist(cache):
             st.success(" Snapshot uploaded")
-            # Clear the Gist cache so next load gets fresh data
             load_historical_cache.clear()
         else:
             st.warning(" Failed to upload to Gist")
-        # Also save locally as backup
         save_historical_cache(cache)
 
     
@@ -700,7 +688,6 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
     display_cache = {}
     yesterday = today - timedelta(days=1)
 
-    # HE17 snapshot 
     he17_captured = he17_data.get('captured_date')
     if he17_captured:
         display_cache['yesterday_HE17'] = {
@@ -713,7 +700,6 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             'data': {}
         }
 
-    # HE01 snapshot 
     he01_captured = he01_data.get('captured_date')
     if he01_captured:
         display_cache['today_HE1'] = {
@@ -937,11 +923,8 @@ NITTER_INSTANCES = [
 
 
 RELEVANCE_KEYWORDS = {
-    # ISOs / RTOs
     "ercot", "pjm", "caiso", "miso", "spp", "nyiso", "isone",
-    # Regulatory bodies
     "ferc", "nerc", "puct", "epa",
-    # Grid / Power operations
     "grid", "load", "generation", "megawatt", " mw", "gigawatt", " gw",
     "outage", "curtailment", "reliability", "reserve margin",
     "interconnection", "queue", "capacity", "retirement", "deactivation",
@@ -950,7 +933,6 @@ RELEVANCE_KEYWORDS = {
     "ancillary", "frequency response", "spinning reserve",
     "power plant", "coal plant", "gas plant", "nuclear plant",
     "wind farm", "solar farm", "battery storage", "peaker",
-    # Gas physical/operational
     "natural gas", "henry hub", "nat gas", "natgas",
     "pipeline", "compressor", "force majeure",
     "storage injection", "storage withdrawal", "storage report",
@@ -962,13 +944,10 @@ RELEVANCE_KEYWORDS = {
     "waha", "transco", "sonat", "tetco", "centerpoint",
     "power burn", "gas burn", "gas demand",
     "bcf", "mcf", "mmbtu", "dekatherm",
-    # Datacenter / large load
     "datacenter", "data center", "hyperscale", "large load",
     "behind the meter", "colocation", "colo ",
-    # Renewables relevant to trading
     "wind generation", "solar generation", "renewable curtailment",
     "wind forecast", "solar forecast",
-    # Specific to trading ops
     "day-ahead", "real-time", "dart spread", "basis",
     "wholesale electricity", "power price", "spark spread",
     "heat rate", "capacity auction", "capacity market",
@@ -1045,7 +1024,6 @@ def fetch_x_feed(username, feed_config, _cache_time):
                         title = unescape(title_el.text) if title_el is not None and title_el.text else ""
                         link = link_el.text if link_el is not None and link_el.text else ""
                         pub_date = pub_el.text if pub_el is not None and pub_el.text else ""
-                        # Clean up nitter links to point to x.com
                         if link and nitter_base in link:
                             link = link.replace(nitter_base, "https://x.com")
                         
@@ -1061,7 +1039,7 @@ def fetch_x_feed(username, feed_config, _cache_time):
                                 "is_x_post": True,
                             })
                     if articles:
-                        return articles  # Got data, stop trying instances
+                        return articles
         except Exception:
             continue
 
@@ -1133,7 +1111,6 @@ def fetch_all_news(cache_time):
     all_articles = []
     seen_headlines = set()
 
-    # 1. Google News RSS articles
     for category, config in NEWS_CATEGORIES.items():
         for query in config["queries"]:
             articles = fetch_google_rss_news(query, category, cache_time)
@@ -1143,7 +1120,6 @@ def fetch_all_news(cache_time):
                     seen_headlines.add(clean)
                     all_articles.append(article)
 
-    # 2. X / Twitter feeds
     x_articles = []
     for username, feed_config in X_FEEDS.items():
         posts = fetch_x_feed(username, feed_config, cache_time)
@@ -1348,7 +1324,6 @@ def fetch_6day_supply_demand():
 
 @st.cache_data(ttl=600)
 def fetch_reserve_data(cache_time):
-    """Fetch capacity forecast, committed capacity, and actual load from gridstatus"""
     gs_ercot = GridStatusErcot()
     data = {}
     try:
@@ -1383,7 +1358,6 @@ EPT_BD = ZoneInfo("America/New_York")
 ERCOT_ONPEAK = (7, 22)
 PJM_ONPEAK   = (8, 23)
 
-# Find repo parquets - try every possible Streamlit Cloud mount point
 _WORK_DIR = Path("/tmp/balday_cache")
 _WORK_DIR.mkdir(parents=True, exist_ok=True)
 ERCOT_PARQUET = _WORK_DIR / "ercot_dart.parquet"
@@ -1424,10 +1398,6 @@ BALDAY_CHUNK     = 7
 BALDAY_SLEEP     = 1.5
 
 
-YES_ERCOT_NODE = 'HB_NORTH'
-YES_PJM_NODE   = 'WESTERN HUB'
-
-# Gist filenames for balday 
 _GIST_ERCOT_FILE = "balday_ercot_dart.b64"
 _GIST_PJM_FILE   = "balday_pjm_dart.b64"
 
@@ -1484,7 +1454,7 @@ def _bd_seed_parquet(iso):
     fname = "ercot_dart.parquet" if iso == "ERCOT" else "pjm_dart.parquet"
 
     if work_path.exists():
-        return  # Already seeded this session
+        return
 
     
     gist_df = _bd_gist_download(gist_file)
@@ -1499,50 +1469,9 @@ def _bd_seed_parquet(iso):
         shutil.copy2(src, work_path)
 
 
-def _yes_fetch(url, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            r = requests.get(url, auth=YES_AUTH, timeout=30)
-            r.raise_for_status()
-            df = pd.read_html(StringIO(r.text))[0]
-            if 'error' in df.columns or len(df.columns) == 1:
-                time.sleep(5 * (attempt + 1))
-                continue
-            return df
-        except Exception:
-            if attempt < max_retries - 1:
-                time.sleep(5 * (attempt + 1))
-    return None
 
 
 
-
-
-def _yes_hist_dart(node, start_date, end_date):
-    da_url = (f"{YES_BASE}/timeseries/DALMP/{node}"
-              f"?agglevel=HOUR&startdate={start_date}&enddate={end_date}")
-    rt_url = (f"{YES_BASE}/timeseries/RTLMP/{node}"
-              f"?agglevel=HOUR&startdate={start_date}&enddate={end_date}")
-    da_df = _yes_fetch(da_url)
-    rt_df = _yes_fetch(rt_url)
-    if da_df is None or da_df.empty:
-        return pd.DataFrame(columns=['date', 'HE', 'DA', 'RT'])
-    da_df = da_df[['MARKETDAY', 'HOURENDING', 'AVGVALUE']].copy()
-    da_df.columns = ['date', 'HE', 'DA']
-    da_df['date'] = pd.to_datetime(da_df['date']).dt.strftime('%Y-%m-%d')
-    da_df['HE'] = pd.to_numeric(da_df['HE'], errors='coerce').astype(int)
-    da_df['DA'] = pd.to_numeric(da_df['DA'], errors='coerce')
-    if rt_df is None or rt_df.empty:
-        da_df['RT'] = np.nan
-        return da_df
-    rt_df = rt_df[['MARKETDAY', 'HOURENDING', 'AVGVALUE']].copy()
-    rt_df.columns = ['date', 'HE', 'RT']
-    rt_df['date'] = pd.to_datetime(rt_df['date']).dt.strftime('%Y-%m-%d')
-    rt_df['HE'] = pd.to_numeric(rt_df['HE'], errors='coerce').astype(int)
-    rt_df['RT'] = pd.to_numeric(rt_df['RT'], errors='coerce')
-    rt_df = rt_df.groupby(['date', 'HE'])['RT'].mean().reset_index()
-    merged = da_df.merge(rt_df, on=['date', 'HE'], how='left')
-    return merged[['date', 'HE', 'DA', 'RT']]
 
 
 @st.cache_data(ttl=86400)
@@ -1590,7 +1519,6 @@ def _ercot_da_spp(today_str):
         if not all_data:
             return None
         df = pd.DataFrame(all_data, columns=fields if fields else None)
-        # Find price column
         price_col = None
         for col in ['settlementPointPrice', 'SPP', 'DASpp', 'DAPrice']:
             if col in df.columns:
@@ -1603,7 +1531,6 @@ def _ercot_da_spp(today_str):
                     break
         if price_col is None:
             return None
-        # Find hour column
         hour_col = None
         for col in ['deliveryHour', 'hourEnding']:
             if col in df.columns:
@@ -1611,7 +1538,6 @@ def _ercot_da_spp(today_str):
                 break
         if hour_col is None:
             return None
-        # hourEnding can be '01:00' format or plain int
         if df[hour_col].dtype == 'object' and df[hour_col].str.contains(':').any():
             df['HE'] = df[hour_col].str.split(':').str[0].astype(int)
         else:
@@ -1700,7 +1626,6 @@ def _ercot_rt_spp(today_str):
         if not all_data:
             return None
         df = pd.DataFrame(all_data, columns=fields if fields else None)
-        # Price column is 'LMP' (confirmed from test)
         price_col = None
         for col in ['LMP', 'LMPValue', 'lmpValue', 'settlementPointPrice']:
             if col in df.columns:
@@ -1832,23 +1757,7 @@ def _bd_backfill_parquet(iso, parquet_path):
         cutoff = (yesterday - timedelta(days=13)).strftime('%Y-%m-%d')
         missing = [d for d in missing if d >= cutoff]
 
-    chunks = _bd_chunk_dates(missing, BALDAY_CHUNK)
-    node = YES_ERCOT_NODE if iso == "ERCOT" else YES_PJM_NODE
-    new_frames = []
-    for i, (cs, ce) in enumerate(chunks):
-        chunk_df = _yes_hist_dart(node, cs, ce)
-        if not chunk_df.empty:
-            new_frames.append(chunk_df)
-        if i < len(chunks) - 1:
-            time.sleep(BALDAY_SLEEP)
-    if new_frames:
-        new_data = pd.concat(new_frames, ignore_index=True)
-        existing = pd.concat([existing, new_data], ignore_index=True) if not existing.empty else new_data
-        _bd_save_parquet(existing, parquet_path)
-        
-        gist_file = _GIST_ERCOT_FILE if iso == "ERCOT" else _GIST_PJM_FILE
-        _bd_gist_upload(existing, gist_file)
-    return _bd_load_parquet(parquet_path)
+    return existing
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -2006,7 +1915,6 @@ def render_balday_tab(now_ct=None):
     rt_key = f"balday_rt_{iso_choice}_{today_str}"
     rt_ts_key = f"balday_rt_ts_{iso_choice}_{today_str}"
 
-    # Refresh button — fetches only NEW RT hours, merges into session state
     col_refresh, col_ts, _ = st.columns([2, 4, 6])
     with col_refresh:
         if st.button("Refresh Prices", key="balday_refresh", type="primary", use_container_width=True):
@@ -2014,7 +1922,6 @@ def render_balday_tab(now_ct=None):
             if fresh_rt is not None and not fresh_rt.empty:
                 existing = st.session_state.get(rt_key)
                 if existing is not None and not existing.empty:
-                    # Only keep new hours not already stored
                     have_hes = set(existing['HE'].tolist())
                     new_rows = fresh_rt[~fresh_rt['HE'].isin(have_hes)]
                     if not new_rows.empty:
@@ -2032,7 +1939,7 @@ def render_balday_tab(now_ct=None):
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
-        pass  # DA not available yet
+        pass
     
     rt_df = st.session_state.get(rt_key)
 
@@ -2172,7 +2079,7 @@ def render_balday_tab(now_ct=None):
 
 
 def main():
-    #check_password()
+    # check_password()
     st.title("Fundies")
     try:
         tab1, tab2, tab5, tab6, tab3, tab4 = st.tabs(["ERCOT Weekly", "PJM Weekly", "ERCOT Reserves", "Bal-Day Calc", "Gas", "News"])
@@ -2231,7 +2138,6 @@ def main():
                     peak_loads = [df[df['deliveryDate'] == d]['systemTotal'].max() for d in ercot_dates]
                     min_peak = min(peak_loads) if peak_loads else 0
                     max_peak = max(peak_loads) if peak_loads else 1
-                    # Get peak hours for ERCOT
                     peak_hours_ercot = [df[df['deliveryDate'] == d]['systemTotal'].idxmax() for d in ercot_dates]
                     peak_hours_ercot = [df.loc[idx, 'HE'] if idx in df.index else 0 for idx in peak_hours_ercot]
                 else:
@@ -2247,7 +2153,6 @@ def main():
                 met_peak_loads = [met_load_df[met_load_df['deliveryDate'] == d]['value'].max() for d in met_dates]
                 met_min_peak = min(met_peak_loads) if met_peak_loads else 0
                 met_max_peak = max(met_peak_loads) if met_peak_loads else 1
-                # Get peak hours for Meteologica
                 peak_hours_met = [met_load_df[met_load_df['deliveryDate'] == d]['value'].idxmax() for d in met_dates]
                 peak_hours_met = [met_load_df.loc[idx, 'HE'] if idx in met_load_df.index else 0 for idx in peak_hours_met]
                 wind_dates = sorted(met_wind_df['deliveryDate'].unique())[:14] if met_wind_df is not None and not met_wind_df.empty else []
@@ -2376,7 +2281,6 @@ def main():
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Wind - Onpeak (HE 7-22)")
                 
-                # Set up regional wind mapping for popup
                 if wind_regional_df is not None and not wind_regional_df.empty:
                     region_mapping = {
                         'COASTAL': 'STWPFCoastal',
@@ -2403,7 +2307,6 @@ def main():
                         peak_wind = wind_avgs[idx]
                         peak_color = get_color_for_value(peak_wind, wind_min_pk, wind_max_pk, reverse=True)
                         with cols[idx]:
-                            # Add date button for all days - only first 7 open regional popup
                             if st.button(f" {date_obj.strftime('%m/%d')}", key=f"wind_region_{date}", use_container_width=True):
                                 if wind_regional_df is not None and not wind_regional_df.empty and idx < 7:
                                     st.session_state['wind_region_popup_date'] = date
@@ -2430,7 +2333,6 @@ def main():
                                 st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
 
-                # Regional Wind Popup
                 if 'wind_region_popup_date' in st.session_state and 'wind_region_mapping' in st.session_state:
                     @st.dialog("Regional Wind Forecast", width="large")
                     def show_wind_region_dialog():
@@ -2450,7 +2352,6 @@ def main():
                                 st.rerun()
                             return
                         
-                        # Calculate min/max for each region for color scaling
                         region_mins = {}
                         region_maxs = {}
                         for region_name, col_name in available_regions.items():
@@ -2802,7 +2703,6 @@ def main():
                     pjm_rto_peak_loads = [pjm_load_df_filtered[pjm_load_df_filtered['deliveryDate'] == d]['value'].max() for d in pjm_rto_dates]
                     pjm_rto_min_peak = min(pjm_rto_peak_loads) if pjm_rto_peak_loads else 0
                     pjm_rto_max_peak = max(pjm_rto_peak_loads) if pjm_rto_peak_loads else 1
-                    # Get peak hours for PJM RTO
                     peak_hours_pjm = [pjm_load_df_filtered[pjm_load_df_filtered['deliveryDate'] == d]['value'].idxmax() for d in pjm_rto_dates]
                     peak_hours_pjm = [pjm_load_df_filtered.loc[idx, 'HE'] if idx in pjm_load_df_filtered.index else 0 for idx in peak_hours_pjm]
                 else:
@@ -2818,7 +2718,6 @@ def main():
                 pjm_met_peak_loads = [pjm_met_load_df[pjm_met_load_df['deliveryDate'] == d]['value'].max() for d in pjm_met_dates]
                 pjm_met_min_peak = min(pjm_met_peak_loads) if pjm_met_peak_loads else 0
                 pjm_met_max_peak = max(pjm_met_peak_loads) if pjm_met_peak_loads else 1
-                # Get peak hours for PJM Meteologica
                 peak_hours_pjm_met = [pjm_met_load_df[pjm_met_load_df['deliveryDate'] == d]['value'].idxmax() for d in pjm_met_dates]
                 peak_hours_pjm_met = [pjm_met_load_df.loc[idx, 'HE'] if idx in pjm_met_load_df.index else 0 for idx in peak_hours_pjm_met]
                 pjm_wind_dates = sorted(pjm_met_wind_df['deliveryDate'].unique())[:14] if pjm_met_wind_df is not None and not pjm_met_wind_df.empty else []
@@ -2946,7 +2845,6 @@ def main():
                             st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
 
 
-                # Zone dropdown 
                 if pjm_load_df is not None and not pjm_load_df.empty:
                     zone_options = sorted([z for z in pjm_load_df['forecast_area'].unique().tolist() if z != 'RTO_COMBINED'])
                     if zone_options:
@@ -3144,7 +3042,6 @@ def main():
                             else:
                                 st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
 
-                # Popup  for PJM date
                 if 'pjm_popup_date' in st.session_state:
                     @st.dialog("PJM Load Details", width="large")
                     def show_pjm_dialog():
@@ -3344,7 +3241,6 @@ def main():
                         xrotation=45
                     )
 
-                    # e main price axis 
                     axes[0].yaxis.set_label_position('right')
                     axes[0].yaxis.tick_right()
                     axes[0].tick_params(axis='both', colors='white', labelsize=10)
@@ -3358,7 +3254,6 @@ def main():
                     
                     axes[0].grid(False)
 
-                    # volume axis 
                     if len(axes) > 1:
                         axes[1].grid(False)
                         axes[1].tick_params(axis='both', colors='white', labelsize=10)
@@ -3384,11 +3279,9 @@ def main():
         with tab4:
             st.header("Energy Market News")
 
-            # Fetch news
             with st.spinner("Loading news feeds..."):
                 all_articles = fetch_all_news(cache_time)
 
-            # Filter chips - added X Feed option
             cat_options = ["All", "ERCOT", "PJM", "Gas", "Pipeline", "Load", "Regulatory", "X Feed"]
             selected_cat = st.radio(
                 "Filter by market:",
@@ -3408,7 +3301,6 @@ def main():
             if not filtered_articles:
                 st.info("No news articles found. Try a different filter or check back later.")
             else:
-                # Header row
                 hdr1, hdr2, hdr3, hdr4 = st.columns([1, 6, 2, 1])
                 hdr1.markdown("**MARKET**")
                 hdr2.markdown("**HEADLINE**")
@@ -3430,7 +3322,6 @@ def main():
 
                     col1, col2, col3, col4 = st.columns([1, 6, 2, 1])
                     with col1:
-                        # Show X icon for tweets, category badge for news
                         if is_x:
                             st.markdown(
                                 f'<span style="background:{cat_bg};color:{cat_color};'
