@@ -2279,7 +2279,8 @@ def render_balday_tab(now_ct=None):
             st.write("Step 5 - hour column dtype:", df_test[hour_col].dtype)
             st.write("Step 5 - hour column sample:", df_test[hour_col].head())
             st.write("Step 5 - contains colon:", df_test[hour_col].astype(str).str.contains(':').any())
-        
+            st.write("dtype ==  'object':", df_test[hour_col].dtype == 'object')
+            st.write("dtype is:", df_test[hour_col].dtype)
         # Check after dropna
         if price_col and hour_col:
             df_test[price_col] = pd.to_numeric(df_test[price_col], errors='coerce')
