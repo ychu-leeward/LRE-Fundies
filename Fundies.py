@@ -127,7 +127,7 @@ def ercot_token():
     # pwd = st.secrets["ercot"]["password"]
     # SUBSCRIPTION = st.secrets["ercot"]["subscription"]
     uid = "yufu.chu@leewardenergy.com"
-    pwd = "05d4gk4V!"
+    pwd = "Leeward2025!"
     SUBSCRIPTION = "64f370c78f9a47cda040577c8bf7b13c"
     AUTH_URL = (
         f"https://ercotb2c.b2clogin.com/ercotb2c.onmicrosoft.com/B2C_1_PUBAPI-ROPC-FLOW/oauth2/v2.0/"
