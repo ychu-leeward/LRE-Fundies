@@ -2189,7 +2189,12 @@ def render_balday_tab(now_ct=None):
         last_rt_update = st.session_state.get(rt_ts_key, "Not yet refreshed")
         st.caption(f"RT last updated: {last_rt_update}")
 
-   
+   with st.expander("Debug"):
+    st.write(st.cache_data.get_stats())  # shows cache entries
+    if st.button("Clear DA cache"):
+        _bd_fetch_today_da.clear()
+        st.rerun()
+        
     da_df = None
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
