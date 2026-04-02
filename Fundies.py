@@ -2229,12 +2229,15 @@ def render_balday_tab(now_ct=None):
             st.write("First data row:", result.get("data", [{}])[0] if result.get("data") else "empty")
             st.write("Meta:", result.get("_meta", {}))
             
-        page_url = f"{test_url}&page=1&size=1000"
-        resp2 = requests.get(page_url, headers=auths, timeout=60)
-        result2 = resp2.json()
-        st.write("With pagination params - row count:", len(result2.get("data", [])))
-        st.write("totalPages:", result2.get("_meta", {}).get("totalPages"))
-        st.write("Fields from paginated call:", [f['name'] for f in result2.get("fields", [])])
+        # Bypass cache entirely
+        if iso_choice == "ERCOT":
+            direct = _ercot_da_spp(today_str)
+        else:
+            direct = _pjm_da_hourly(today_str)
+        st.write("Direct call result (bypassing cache):", direct)
+        if st.button("Force clear _bd_fetch_today_da cache"):
+            _bd_fetch_today_da.clear()
+            st.rerun()
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
