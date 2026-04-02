@@ -29,18 +29,19 @@ st.set_page_config(page_title="Fundies", layout="wide", initial_sidebar_state="c
 st.markdown("""
     <style>
     .stApp {
-        background-color:
-        color:
+        background-color: #0e1117;
+        color: #fafafa;
     }
     [data-testid="stHeader"] {
-        background-color:
+        background-color: #0e1117;
     }
     [data-testid="stSidebar"] {
-        background-color:
+        background-color: #0e1117;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# Auto-refresh once per hour at 16:30 past each hour CT
 def get_refresh_info():
     from zoneinfo import ZoneInfo
     now = datetime.now(ZoneInfo('America/Chicago'))
@@ -49,7 +50,7 @@ def get_refresh_info():
     
     
     current_seconds_into_hour = now.minute * 60 + now.second
-    target_seconds_into_hour = target_minute * 60 + target_second
+    target_seconds_into_hour = target_minute * 60 + target_second  # 990 seconds = 16:30
     
     if current_seconds_into_hour < target_seconds_into_hour:
         
@@ -66,6 +67,7 @@ def get_refresh_info():
 refresh_seconds, next_refresh_time = get_refresh_info()
 st.markdown(f'<meta http-equiv="refresh" content="{refresh_seconds}">', unsafe_allow_html=True)
 
+# Load from Streamlit secrets 
 baseurl = "https://api-markets.meteologica.com/api/v1/"
 
 
@@ -272,6 +274,7 @@ def fetch_ercot_wind_by_region(cache_time):
             if not df.empty:
                 df['deliveryDate'] = pd.to_datetime(df['deliveryDate']).dt.date
                 
+                # Handle hourEnding
                 if df['hourEnding'].dtype == 'object':
                     df['HE'] = df['hourEnding'].str.split(':').str[0].astype(int)
                 else:
@@ -280,6 +283,7 @@ def fetch_ercot_wind_by_region(cache_time):
                 
                 if 'postedDatetime' in df.columns:
                     df['postedDatetime'] = pd.to_datetime(df['postedDatetime'])
+                    # Keep only the most recent posted forecast for each date/hour
                     df = df.sort_values('postedDatetime', ascending=False)
                     df = df.drop_duplicates(subset=['deliveryDate', 'HE'], keep='first')
                     df = df.sort_values(['deliveryDate', 'HE'])
@@ -416,18 +420,19 @@ def fetch_outage_data(cache_time):
         return df, cache_time
     return None, cache_time
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600)  # Cache for 1 hour - Gist only updates at HE17 and HE01
 def load_historical_cache():
     
     try:
         gist_url = st.secrets.get("gist", {}).get("snapshot_url")
         if gist_url:
-            cache_buster = f"?cb={int(time.time() // 3600)}"
+            # Add cache-busting parameter to avoid GitHub CDN caching issues
+            cache_buster = f"?cb={int(time.time() // 3600)}"  # Changes every hour
             response = requests.get(gist_url + cache_buster, timeout=30)
             if response.ok:
                 return response.json()
     except Exception as e:
-        pass
+        pass  # Silently fail, return None
     
     
     if CACHE_FILE.exists():
@@ -640,6 +645,7 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             'HE01_snapshot': {'captured_date': None, 'data': {}}
         }
 
+    # Check snapshot
     snapshot_captured = False
     
    
@@ -647,6 +653,7 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
         he17_captured_date = cache.get('HE17_snapshot', {}).get('captured_date')
         session_key = f"he17_captured_{today}"
         if he17_captured_date != str(today) and session_key not in st.session_state:
+            # Capture HE17 snapshot
             snapshot = create_snapshot_data(met_load_df, met_wind_df, met_solar_df, df, outage_df,
                                pjm_met_load_df, pjm_met_wind_df, pjm_met_solar_df, pjm_load_df, pjm_outage_df)
             cache['HE17_snapshot'] = {
@@ -658,10 +665,12 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             st.session_state[session_key] = True
             st.success(f"📸 Captured HE17 snapshot at {now.strftime('%I:%M %p')} CT")
     
+    # HE01 
     if current_hour == 0:
         he01_captured_date = cache.get('HE01_snapshot', {}).get('captured_date')
         session_key = f"he01_captured_{today}"
         if he01_captured_date != str(today) and session_key not in st.session_state:
+            # Capture HE01 snapshot
             snapshot = create_snapshot_data(met_load_df, met_wind_df, met_solar_df, df, outage_df,
                                pjm_met_load_df, pjm_met_wind_df, pjm_met_solar_df, pjm_load_df, pjm_outage_df)
             cache['HE01_snapshot'] = {
@@ -673,12 +682,15 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             st.session_state[session_key] = True
             st.success(f"📸 Captured HE01 snapshot at {now.strftime('%I:%M %p')} CT")
     
+    # Upload to Gist 
     if snapshot_captured:
         if upload_to_gist(cache):
             st.success(" Snapshot uploaded")
+            # Clear the Gist cache so next load gets fresh data
             load_historical_cache.clear()
         else:
             st.warning(" Failed to upload to Gist")
+        # Also save locally as backup
         save_historical_cache(cache)
 
     
@@ -688,6 +700,7 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
     display_cache = {}
     yesterday = today - timedelta(days=1)
 
+    # HE17 snapshot 
     he17_captured = he17_data.get('captured_date')
     if he17_captured:
         display_cache['yesterday_HE17'] = {
@@ -700,6 +713,7 @@ def get_or_update_historical_cache(met_load_df, met_wind_df, met_solar_df, df, o
             'data': {}
         }
 
+    # HE01 snapshot 
     he01_captured = he01_data.get('captured_date')
     if he01_captured:
         display_cache['today_HE1'] = {
@@ -923,8 +937,11 @@ NITTER_INSTANCES = [
 
 
 RELEVANCE_KEYWORDS = {
+    # ISOs / RTOs
     "ercot", "pjm", "caiso", "miso", "spp", "nyiso", "isone",
+    # Regulatory bodies
     "ferc", "nerc", "puct", "epa",
+    # Grid / Power operations
     "grid", "load", "generation", "megawatt", " mw", "gigawatt", " gw",
     "outage", "curtailment", "reliability", "reserve margin",
     "interconnection", "queue", "capacity", "retirement", "deactivation",
@@ -933,6 +950,7 @@ RELEVANCE_KEYWORDS = {
     "ancillary", "frequency response", "spinning reserve",
     "power plant", "coal plant", "gas plant", "nuclear plant",
     "wind farm", "solar farm", "battery storage", "peaker",
+    # Gas physical/operational
     "natural gas", "henry hub", "nat gas", "natgas",
     "pipeline", "compressor", "force majeure",
     "storage injection", "storage withdrawal", "storage report",
@@ -944,10 +962,13 @@ RELEVANCE_KEYWORDS = {
     "waha", "transco", "sonat", "tetco", "centerpoint",
     "power burn", "gas burn", "gas demand",
     "bcf", "mcf", "mmbtu", "dekatherm",
+    # Datacenter / large load
     "datacenter", "data center", "hyperscale", "large load",
     "behind the meter", "colocation", "colo ",
+    # Renewables relevant to trading
     "wind generation", "solar generation", "renewable curtailment",
     "wind forecast", "solar forecast",
+    # Specific to trading ops
     "day-ahead", "real-time", "dart spread", "basis",
     "wholesale electricity", "power price", "spark spread",
     "heat rate", "capacity auction", "capacity market",
@@ -1024,6 +1045,7 @@ def fetch_x_feed(username, feed_config, _cache_time):
                         title = unescape(title_el.text) if title_el is not None and title_el.text else ""
                         link = link_el.text if link_el is not None and link_el.text else ""
                         pub_date = pub_el.text if pub_el is not None and pub_el.text else ""
+                        # Clean up nitter links to point to x.com
                         if link and nitter_base in link:
                             link = link.replace(nitter_base, "https://x.com")
                         
@@ -1039,7 +1061,7 @@ def fetch_x_feed(username, feed_config, _cache_time):
                                 "is_x_post": True,
                             })
                     if articles:
-                        return articles
+                        return articles  # Got data, stop trying instances
         except Exception:
             continue
 
@@ -1111,6 +1133,7 @@ def fetch_all_news(cache_time):
     all_articles = []
     seen_headlines = set()
 
+    # 1. Google News RSS articles
     for category, config in NEWS_CATEGORIES.items():
         for query in config["queries"]:
             articles = fetch_google_rss_news(query, category, cache_time)
@@ -1120,6 +1143,7 @@ def fetch_all_news(cache_time):
                     seen_headlines.add(clean)
                     all_articles.append(article)
 
+    # 2. X / Twitter feeds
     x_articles = []
     for username, feed_config in X_FEEDS.items():
         posts = fetch_x_feed(username, feed_config, cache_time)
@@ -1324,6 +1348,7 @@ def fetch_6day_supply_demand():
 
 @st.cache_data(ttl=600)
 def fetch_reserve_data(cache_time):
+    """Fetch capacity forecast, committed capacity, and actual load from gridstatus"""
     gs_ercot = GridStatusErcot()
     data = {}
     try:
@@ -1358,6 +1383,7 @@ EPT_BD = ZoneInfo("America/New_York")
 ERCOT_ONPEAK = (7, 22)
 PJM_ONPEAK   = (8, 23)
 
+# Find repo parquets - try every possible Streamlit Cloud mount point
 _WORK_DIR = Path("/tmp/balday_cache")
 _WORK_DIR.mkdir(parents=True, exist_ok=True)
 ERCOT_PARQUET = _WORK_DIR / "ercot_dart.parquet"
@@ -1398,6 +1424,7 @@ BALDAY_CHUNK     = 7
 BALDAY_SLEEP     = 1.5
 
 
+# Gist filenames for balday 
 _GIST_ERCOT_FILE = "balday_ercot_dart.b64"
 _GIST_PJM_FILE   = "balday_pjm_dart.b64"
 
@@ -1454,7 +1481,7 @@ def _bd_seed_parquet(iso):
     fname = "ercot_dart.parquet" if iso == "ERCOT" else "pjm_dart.parquet"
 
     if work_path.exists():
-        return
+        return  # Already seeded this session
 
     
     gist_df = _bd_gist_download(gist_file)
@@ -1469,9 +1496,213 @@ def _bd_seed_parquet(iso):
         shutil.copy2(src, work_path)
 
 
+def _ercot_hist_dart(start_date, end_date):
+    """Fetch historical DA and RT prices for HB_NORTH from ERCOT API."""
+    auths = ercot_token()
+    if not auths:
+        return pd.DataFrame(columns=['date', 'HE', 'DA', 'RT'])
+
+    # --- DA prices (np4-190-cd) ---
+    da_frames = []
+    try:
+        page = 1
+        while True:
+            da_url = (
+                f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
+                f"?deliveryDateFrom={start_date}&deliveryDateTo={end_date}"
+                f"&settlementPoint=HB_NORTH&page={page}&size=1000"
+            )
+            resp = requests.get(da_url, headers=auths, timeout=60)
+            if not resp.ok:
+                break
+            result = resp.json()
+            rows = result.get("data", [])
+            if not rows:
+                break
+            fields = [f['name'] for f in result.get("fields", [])]
+            da_frames.append(pd.DataFrame(rows, columns=fields))
+            if page >= result.get("_meta", {}).get("totalPages", 1):
+                break
+            page += 1
+    except Exception:
+        pass
+
+    if not da_frames:
+        return pd.DataFrame(columns=['date', 'HE', 'DA', 'RT'])
+
+    da_df = pd.concat(da_frames, ignore_index=True)
+
+    # Find price and hour columns
+    price_col = next((c for c in ['settlementPointPrice', 'SPP', 'DASpp'] if c in da_df.columns),
+                     next((c for c in da_df.columns if 'price' in c.lower() or 'spp' in c.lower()), None))
+    hour_col = next((c for c in ['deliveryHour', 'hourEnding'] if c in da_df.columns), None)
+    if price_col is None or hour_col is None:
+        return pd.DataFrame(columns=['date', 'HE', 'DA', 'RT'])
+
+    if da_df[hour_col].dtype == 'object' and da_df[hour_col].str.contains(':').any():
+        da_df['HE'] = da_df[hour_col].str.split(':').str[0].astype(int)
+    else:
+        da_df['HE'] = pd.to_numeric(da_df[hour_col], errors='coerce')
+    da_df['DA'] = pd.to_numeric(da_df[price_col], errors='coerce')
+    da_df['date'] = pd.to_datetime(da_df['deliveryDate']).dt.strftime('%Y-%m-%d')
+    da_df = da_df.dropna(subset=['HE', 'DA'])
+    da_df['HE'] = da_df['HE'].astype(int)
+    da_hourly = da_df.groupby(['date', 'HE'])['DA'].mean().reset_index()
+
+    # --- RT prices (np6-788-cd) ---
+    rt_frames = []
+    try:
+        page = 1
+        while True:
+            rt_url = (
+                f"https://api.ercot.com/api/public-reports/np6-788-cd/lmp_node_zone_hub"
+                f"?SCEDTimestampFrom={start_date}T00:00:00&SCEDTimestampTo={end_date}T23:59:59"
+                f"&settlementPoint=HB_NORTH&page={page}&size=1000"
+            )
+            resp = requests.get(rt_url, headers=auths, timeout=60)
+            if not resp.ok:
+                break
+            result = resp.json()
+            rows = result.get("data", [])
+            if not rows:
+                break
+            fields = [f['name'] for f in result.get("fields", [])]
+            rt_frames.append(pd.DataFrame(rows, columns=fields))
+            if page >= result.get("_meta", {}).get("totalPages", 1):
+                break
+            page += 1
+            time.sleep(0.5)  # Rate limit courtesy
+    except Exception:
+        pass
+
+    if not rt_frames:
+        da_hourly['RT'] = np.nan
+        return da_hourly[['date', 'HE', 'DA', 'RT']]
+
+    rt_df = pd.concat(rt_frames, ignore_index=True)
+    rt_price_col = next((c for c in ['LMP', 'LMPValue', 'settlementPointPrice'] if c in rt_df.columns),
+                        next((c for c in rt_df.columns if 'lmp' in c.lower() or 'price' in c.lower()), None))
+    if rt_price_col is None:
+        da_hourly['RT'] = np.nan
+        return da_hourly[['date', 'HE', 'DA', 'RT']]
+
+    rt_df[rt_price_col] = pd.to_numeric(rt_df[rt_price_col], errors='coerce')
+    if 'SCEDTimestamp' in rt_df.columns:
+        rt_df['_ts'] = pd.to_datetime(rt_df['SCEDTimestamp'], errors='coerce')
+        rt_df['date'] = rt_df['_ts'].dt.strftime('%Y-%m-%d')
+        rt_df['HE'] = rt_df['_ts'].dt.hour + 1
+    elif 'deliveryDate' in rt_df.columns and 'deliveryHour' in rt_df.columns:
+        rt_df['date'] = pd.to_datetime(rt_df['deliveryDate']).dt.strftime('%Y-%m-%d')
+        rt_df['HE'] = pd.to_numeric(rt_df['deliveryHour'], errors='coerce')
+    else:
+        da_hourly['RT'] = np.nan
+        return da_hourly[['date', 'HE', 'DA', 'RT']]
+
+    rt_df = rt_df.dropna(subset=['HE', rt_price_col])
+    rt_df['HE'] = rt_df['HE'].astype(int)
+    rt_hourly = rt_df.groupby(['date', 'HE'])[rt_price_col].mean().reset_index()
+    rt_hourly.columns = ['date', 'HE', 'RT']
+
+    merged = da_hourly.merge(rt_hourly, on=['date', 'HE'], how='left')
+    return merged[['date', 'HE', 'DA', 'RT']]
 
 
+def _pjm_hist_dart(start_date, end_date):
+    """Fetch historical DA and RT prices for WESTERN HUB (pnode_id=51288) from PJM API."""
+    pjm_headers = {
+        'Ocp-Apim-Subscription-Key': st.secrets["pjm"]["subscription_key"],
+    }
 
+    # --- DA prices ---
+    da_frames = []
+    try:
+        start_row = 1
+        while True:
+            da_url = (
+                f"https://api.pjm.com/api/v1/da_hrl_lmps"
+                f"?download=true&rowCount=50000"
+                f"&sort=datetime_beginning_ept&order=Asc&startRow={start_row}"
+                f"&datetime_beginning_ept={start_date}%2000:00to{end_date}%2023:59"
+                f"&pnode_id=51288"
+                f"&fields=datetime_beginning_ept,total_lmp_da,pnode_id"
+            )
+            resp = requests.get(da_url, headers=pjm_headers, timeout=120)
+            if not resp.ok:
+                break
+            data = resp.json()
+            if not data:
+                break
+            chunk = pd.json_normalize(data)
+            if chunk.empty:
+                break
+            da_frames.append(chunk)
+            if len(chunk) < 50000:
+                break
+            start_row += 50000
+    except Exception:
+        pass
+
+    if not da_frames:
+        return pd.DataFrame(columns=['date', 'HE', 'DA', 'RT'])
+
+    da_df = pd.concat(da_frames, ignore_index=True)
+    da_df['datetime_beginning_ept'] = pd.to_datetime(da_df['datetime_beginning_ept'])
+    da_df['date'] = da_df['datetime_beginning_ept'].dt.strftime('%Y-%m-%d')
+    da_df['HE'] = da_df['datetime_beginning_ept'].dt.hour + 1
+    da_df['DA'] = pd.to_numeric(da_df['total_lmp_da'], errors='coerce')
+    da_hourly = da_df.groupby(['date', 'HE'])['DA'].mean().reset_index()
+
+    # --- RT prices ---
+    rt_frames = []
+    try:
+        date_filter = f"{start_date} 00:00 to {end_date} 23:59"
+        start_row = 1
+        while True:
+            rt_url = (
+                f"https://api.pjm.com/api/v1/rt_unverified_fivemin_lmps"
+                f"?download=true&rowCount=50000"
+                f"&sort=datetime_beginning_ept&order=Asc&startRow={start_row}"
+                f"&datetime_beginning_ept={quote(date_filter)}"
+                f"&pnode_id=51288"
+                f"&fields=datetime_beginning_ept,total_lmp_rt,pnode_id"
+            )
+            resp = requests.get(rt_url, headers=pjm_headers, timeout=120)
+            if not resp.ok:
+                break
+            data = resp.json()
+            if not data:
+                break
+            chunk = pd.json_normalize(data)
+            if chunk.empty:
+                break
+            rt_frames.append(chunk)
+            if len(chunk) < 50000:
+                break
+            start_row += 50000
+    except Exception:
+        pass
+
+    if not rt_frames:
+        da_hourly['RT'] = np.nan
+        return da_hourly[['date', 'HE', 'DA', 'RT']]
+
+    rt_df = pd.concat(rt_frames, ignore_index=True)
+    rt_df['datetime_beginning_ept'] = pd.to_datetime(rt_df['datetime_beginning_ept'])
+    rt_df['date'] = rt_df['datetime_beginning_ept'].dt.strftime('%Y-%m-%d')
+    rt_df['HE'] = rt_df['datetime_beginning_ept'].dt.hour + 1
+    rt_df['RT'] = pd.to_numeric(rt_df['total_lmp_rt'], errors='coerce')
+    rt_hourly = rt_df.groupby(['date', 'HE'])['RT'].mean().reset_index()
+
+    merged = da_hourly.merge(rt_hourly, on=['date', 'HE'], how='left')
+    return merged[['date', 'HE', 'DA', 'RT']]
+
+
+def _hist_dart(iso, start_date, end_date):
+    """Router: fetch historical DART from the appropriate ISO API."""
+    if iso == "ERCOT":
+        return _ercot_hist_dart(start_date, end_date)
+    else:
+        return _pjm_hist_dart(start_date, end_date)
 
 
 @st.cache_data(ttl=86400)
@@ -1519,6 +1750,7 @@ def _ercot_da_spp(today_str):
         if not all_data:
             return None
         df = pd.DataFrame(all_data, columns=fields if fields else None)
+        # Find price column
         price_col = None
         for col in ['settlementPointPrice', 'SPP', 'DASpp', 'DAPrice']:
             if col in df.columns:
@@ -1531,6 +1763,7 @@ def _ercot_da_spp(today_str):
                     break
         if price_col is None:
             return None
+        # Find hour column
         hour_col = None
         for col in ['deliveryHour', 'hourEnding']:
             if col in df.columns:
@@ -1538,6 +1771,7 @@ def _ercot_da_spp(today_str):
                 break
         if hour_col is None:
             return None
+        # hourEnding can be '01:00' format or plain int
         if df[hour_col].dtype == 'object' and df[hour_col].str.contains(':').any():
             df['HE'] = df[hour_col].str.split(':').str[0].astype(int)
         else:
@@ -1626,6 +1860,7 @@ def _ercot_rt_spp(today_str):
         if not all_data:
             return None
         df = pd.DataFrame(all_data, columns=fields if fields else None)
+        # Price column is 'LMP' (confirmed from test)
         price_col = None
         for col in ['LMP', 'LMPValue', 'lmpValue', 'settlementPointPrice']:
             if col in df.columns:
@@ -1757,7 +1992,22 @@ def _bd_backfill_parquet(iso, parquet_path):
         cutoff = (yesterday - timedelta(days=13)).strftime('%Y-%m-%d')
         missing = [d for d in missing if d >= cutoff]
 
-    return existing
+    chunks = _bd_chunk_dates(missing, BALDAY_CHUNK)
+    new_frames = []
+    for i, (cs, ce) in enumerate(chunks):
+        chunk_df = _hist_dart(iso, cs, ce)
+        if not chunk_df.empty:
+            new_frames.append(chunk_df)
+        if i < len(chunks) - 1:
+            time.sleep(BALDAY_SLEEP)
+    if new_frames:
+        new_data = pd.concat(new_frames, ignore_index=True)
+        existing = pd.concat([existing, new_data], ignore_index=True) if not existing.empty else new_data
+        _bd_save_parquet(existing, parquet_path)
+        
+        gist_file = _GIST_ERCOT_FILE if iso == "ERCOT" else _GIST_PJM_FILE
+        _bd_gist_upload(existing, gist_file)
+    return _bd_load_parquet(parquet_path)
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -1915,6 +2165,7 @@ def render_balday_tab(now_ct=None):
     rt_key = f"balday_rt_{iso_choice}_{today_str}"
     rt_ts_key = f"balday_rt_ts_{iso_choice}_{today_str}"
 
+    # Refresh button — fetches only NEW RT hours, merges into session state
     col_refresh, col_ts, _ = st.columns([2, 4, 6])
     with col_refresh:
         if st.button("Refresh Prices", key="balday_refresh", type="primary", use_container_width=True):
@@ -1922,6 +2173,7 @@ def render_balday_tab(now_ct=None):
             if fresh_rt is not None and not fresh_rt.empty:
                 existing = st.session_state.get(rt_key)
                 if existing is not None and not existing.empty:
+                    # Only keep new hours not already stored
                     have_hes = set(existing['HE'].tolist())
                     new_rows = fresh_rt[~fresh_rt['HE'].isin(have_hes)]
                     if not new_rows.empty:
@@ -1939,7 +2191,7 @@ def render_balday_tab(now_ct=None):
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
-        pass
+        pass  # DA not available yet
     
     rt_df = st.session_state.get(rt_key)
 
@@ -2138,6 +2390,7 @@ def main():
                     peak_loads = [df[df['deliveryDate'] == d]['systemTotal'].max() for d in ercot_dates]
                     min_peak = min(peak_loads) if peak_loads else 0
                     max_peak = max(peak_loads) if peak_loads else 1
+                    # Get peak hours for ERCOT
                     peak_hours_ercot = [df[df['deliveryDate'] == d]['systemTotal'].idxmax() for d in ercot_dates]
                     peak_hours_ercot = [df.loc[idx, 'HE'] if idx in df.index else 0 for idx in peak_hours_ercot]
                 else:
@@ -2153,6 +2406,7 @@ def main():
                 met_peak_loads = [met_load_df[met_load_df['deliveryDate'] == d]['value'].max() for d in met_dates]
                 met_min_peak = min(met_peak_loads) if met_peak_loads else 0
                 met_max_peak = max(met_peak_loads) if met_peak_loads else 1
+                # Get peak hours for Meteologica
                 peak_hours_met = [met_load_df[met_load_df['deliveryDate'] == d]['value'].idxmax() for d in met_dates]
                 peak_hours_met = [met_load_df.loc[idx, 'HE'] if idx in met_load_df.index else 0 for idx in peak_hours_met]
                 wind_dates = sorted(met_wind_df['deliveryDate'].unique())[:14] if met_wind_df is not None and not met_wind_df.empty else []
@@ -2281,6 +2535,7 @@ def main():
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Wind - Onpeak (HE 7-22)")
                 
+                # Set up regional wind mapping for popup
                 if wind_regional_df is not None and not wind_regional_df.empty:
                     region_mapping = {
                         'COASTAL': 'STWPFCoastal',
@@ -2307,6 +2562,7 @@ def main():
                         peak_wind = wind_avgs[idx]
                         peak_color = get_color_for_value(peak_wind, wind_min_pk, wind_max_pk, reverse=True)
                         with cols[idx]:
+                            # Add date button for all days - only first 7 open regional popup
                             if st.button(f" {date_obj.strftime('%m/%d')}", key=f"wind_region_{date}", use_container_width=True):
                                 if wind_regional_df is not None and not wind_regional_df.empty and idx < 7:
                                     st.session_state['wind_region_popup_date'] = date
@@ -2333,6 +2589,7 @@ def main():
                                 st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
 
+                # Regional Wind Popup
                 if 'wind_region_popup_date' in st.session_state and 'wind_region_mapping' in st.session_state:
                     @st.dialog("Regional Wind Forecast", width="large")
                     def show_wind_region_dialog():
@@ -2352,6 +2609,7 @@ def main():
                                 st.rerun()
                             return
                         
+                        # Calculate min/max for each region for color scaling
                         region_mins = {}
                         region_maxs = {}
                         for region_name, col_name in available_regions.items():
@@ -2703,6 +2961,7 @@ def main():
                     pjm_rto_peak_loads = [pjm_load_df_filtered[pjm_load_df_filtered['deliveryDate'] == d]['value'].max() for d in pjm_rto_dates]
                     pjm_rto_min_peak = min(pjm_rto_peak_loads) if pjm_rto_peak_loads else 0
                     pjm_rto_max_peak = max(pjm_rto_peak_loads) if pjm_rto_peak_loads else 1
+                    # Get peak hours for PJM RTO
                     peak_hours_pjm = [pjm_load_df_filtered[pjm_load_df_filtered['deliveryDate'] == d]['value'].idxmax() for d in pjm_rto_dates]
                     peak_hours_pjm = [pjm_load_df_filtered.loc[idx, 'HE'] if idx in pjm_load_df_filtered.index else 0 for idx in peak_hours_pjm]
                 else:
@@ -2718,6 +2977,7 @@ def main():
                 pjm_met_peak_loads = [pjm_met_load_df[pjm_met_load_df['deliveryDate'] == d]['value'].max() for d in pjm_met_dates]
                 pjm_met_min_peak = min(pjm_met_peak_loads) if pjm_met_peak_loads else 0
                 pjm_met_max_peak = max(pjm_met_peak_loads) if pjm_met_peak_loads else 1
+                # Get peak hours for PJM Meteologica
                 peak_hours_pjm_met = [pjm_met_load_df[pjm_met_load_df['deliveryDate'] == d]['value'].idxmax() for d in pjm_met_dates]
                 peak_hours_pjm_met = [pjm_met_load_df.loc[idx, 'HE'] if idx in pjm_met_load_df.index else 0 for idx in peak_hours_pjm_met]
                 pjm_wind_dates = sorted(pjm_met_wind_df['deliveryDate'].unique())[:14] if pjm_met_wind_df is not None and not pjm_met_wind_df.empty else []
@@ -2845,6 +3105,7 @@ def main():
                             st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
 
 
+                # Zone dropdown 
                 if pjm_load_df is not None and not pjm_load_df.empty:
                     zone_options = sorted([z for z in pjm_load_df['forecast_area'].unique().tolist() if z != 'RTO_COMBINED'])
                     if zone_options:
@@ -3042,6 +3303,7 @@ def main():
                             else:
                                 st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
 
+                # Popup  for PJM date
                 if 'pjm_popup_date' in st.session_state:
                     @st.dialog("PJM Load Details", width="large")
                     def show_pjm_dialog():
@@ -3241,6 +3503,7 @@ def main():
                         xrotation=45
                     )
 
+                    # e main price axis 
                     axes[0].yaxis.set_label_position('right')
                     axes[0].yaxis.tick_right()
                     axes[0].tick_params(axis='both', colors='white', labelsize=10)
@@ -3254,6 +3517,7 @@ def main():
                     
                     axes[0].grid(False)
 
+                    # volume axis 
                     if len(axes) > 1:
                         axes[1].grid(False)
                         axes[1].tick_params(axis='both', colors='white', labelsize=10)
@@ -3279,9 +3543,11 @@ def main():
         with tab4:
             st.header("Energy Market News")
 
+            # Fetch news
             with st.spinner("Loading news feeds..."):
                 all_articles = fetch_all_news(cache_time)
 
+            # Filter chips - added X Feed option
             cat_options = ["All", "ERCOT", "PJM", "Gas", "Pipeline", "Load", "Regulatory", "X Feed"]
             selected_cat = st.radio(
                 "Filter by market:",
@@ -3301,6 +3567,7 @@ def main():
             if not filtered_articles:
                 st.info("No news articles found. Try a different filter or check back later.")
             else:
+                # Header row
                 hdr1, hdr2, hdr3, hdr4 = st.columns([1, 6, 2, 1])
                 hdr1.markdown("**MARKET**")
                 hdr2.markdown("**HEADLINE**")
@@ -3322,6 +3589,7 @@ def main():
 
                     col1, col2, col3, col4 = st.columns([1, 6, 2, 1])
                     with col1:
+                        # Show X icon for tweets, category badge for news
                         if is_x:
                             st.markdown(
                                 f'<span style="background:{cat_bg};color:{cat_color};'
