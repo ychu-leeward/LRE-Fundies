@@ -2238,6 +2238,59 @@ def render_balday_tab(now_ct=None):
         if st.button("Force clear _bd_fetch_today_da cache"):
             _bd_fetch_today_da.clear()
             st.rerun()
+            
+        # Trace through _ercot_da_spp parsing step by step
+        page_url = (
+            f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
+            f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
+            f"&settlementPoint=HB_NORTH&page=1&size=1000"
+        )
+        resp3 = requests.get(page_url, headers=auths, timeout=60)
+        result3 = resp3.json()
+        
+        fields = [f['name'] for f in result3.get("fields", [])]
+        all_data = result3.get("data", [])
+        
+        st.write("Step 1 - fields:", fields)
+        st.write("Step 1 - row count:", len(all_data))
+        
+        df_test = pd.DataFrame(all_data, columns=fields)
+        st.write("Step 2 - dataframe shape:", df_test.shape)
+        st.write("Step 2 - dataframe head:", df_test.head())
+        
+        # Check price column detection
+        price_col = None
+        for col in ['settlementPointPrice', 'SPP', 'DASpp', 'DAPrice']:
+            if col in df_test.columns:
+                price_col = col
+                break
+        st.write("Step 3 - price_col found:", price_col)
+        
+        # Check hour column detection
+        hour_col = None
+        for col in ['deliveryHour', 'hourEnding']:
+            if col in df_test.columns:
+                hour_col = col
+                break
+        st.write("Step 4 - hour_col found:", hour_col)
+        
+        # Check hour parsing
+        if hour_col:
+            st.write("Step 5 - hour column dtype:", df_test[hour_col].dtype)
+            st.write("Step 5 - hour column sample:", df_test[hour_col].head())
+            st.write("Step 5 - contains colon:", df_test[hour_col].astype(str).str.contains(':').any())
+        
+        # Check after dropna
+        if price_col and hour_col:
+            df_test[price_col] = pd.to_numeric(df_test[price_col], errors='coerce')
+            if df_test[hour_col].dtype == 'object' and df_test[hour_col].astype(str).str.contains(':').any():
+                df_test['HE'] = df_test[hour_col].str.split(':').str[0].astype(int)
+            else:
+                df_test['HE'] = pd.to_numeric(df_test[hour_col], errors='coerce')
+            st.write("Step 6 - after HE parse, NaN count:", df_test['HE'].isna().sum())
+            st.write("Step 6 - after price parse, NaN count:", df_test[price_col].isna().sum())
+            df_test = df_test.dropna(subset=['HE', price_col])
+            st.write("Step 7 - after dropna, row count:", len(df_test))
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
