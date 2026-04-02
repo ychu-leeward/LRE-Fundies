@@ -10,4 +10,4 @@ gridstatus
 pyarrow
 --only-binary=lxml
 lxml>=6.0.1
-tzdata
+tzdata=2023.3
