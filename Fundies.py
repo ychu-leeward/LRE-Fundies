@@ -2192,6 +2192,34 @@ def render_balday_tab(now_ct=None):
 
    
     da_df = None
+    with st.expander("Debug"):
+        st.write("today_str:", today_str)
+        st.write("iso_choice:", iso_choice)
+        
+        # Test token
+        auths = ercot_token()
+        st.write("Token obtained:", auths is not None)
+        
+        if auths:
+            # Test raw API call bypassing cache
+            raw = _ercot_da_spp(today_str)
+            st.write("Raw _ercot_da_spp result:", raw)
+            
+            # Test the URL directly
+            import requests
+            test_url = (
+                f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
+                f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
+                f"&settlementPoint=HB_NORTH&page=1&size=1000"
+            )
+            st.write("Testing URL:", test_url)
+            resp = requests.get(test_url, headers=auths, timeout=60)
+            st.write("Status code:", resp.status_code)
+            st.write("Response preview:", resp.text[:500])
+        
+        if st.button("Clear DA cache"):
+            _bd_fetch_today_da.clear()
+            st.rerun()
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
