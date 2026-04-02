@@ -2079,7 +2079,7 @@ def render_balday_tab(now_ct=None):
 
 
 def main():
-    # check_password()
+    check_password()
     st.title("Fundies")
     try:
         tab1, tab2, tab5, tab6, tab3, tab4 = st.tabs(["ERCOT Weekly", "PJM Weekly", "ERCOT Reserves", "Bal-Day Calc", "Gas", "News"])
