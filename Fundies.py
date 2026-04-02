@@ -2220,6 +2220,14 @@ def render_balday_tab(now_ct=None):
         if st.button("Clear DA cache"):
             _bd_fetch_today_da.clear()
             st.rerun()
+        if auths:
+            resp = requests.get(test_url, headers=auths, timeout=60)
+            result = resp.json()
+            
+            st.write("Fields:", result.get("fields", []))
+            st.write("Data row count:", len(result.get("data", [])))
+            st.write("First data row:", result.get("data", [{}])[0] if result.get("data") else "empty")
+            st.write("Meta:", result.get("_meta", {}))
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
