@@ -1775,10 +1775,10 @@ def _ercot_da_spp(today_str):
         if hour_col is None:
             return None
         # hourEnding can be '01:00' format or plain int
-        if df[hour_col].dtype == 'object' and df[hour_col].str.contains(':').any():
-            df['HE'] = df[hour_col].str.split(':').str[0].astype(int)
+        if df[hour_col].astype(str).str.contains(':').any():
+            df['HE'] = df[hour_col].astype(str).str.split(':').str[0].astype(int)
         else:
-            df['HE'] = pd.to_numeric(df[hour_col], errors='coerce')
+            df['HE'] = df[hour_col].astype(float).astype(int)
         df[price_col] = pd.to_numeric(df[price_col], errors='coerce')
         df = df.dropna(subset=['HE', price_col])
         df['HE'] = df['HE'].astype(int)
@@ -2192,106 +2192,106 @@ def render_balday_tab(now_ct=None):
 
    
     da_df = None
-    with st.expander("Debug"):
-        st.write("today_str:", today_str)
-        st.write("iso_choice:", iso_choice)
+    # with st.expander("Debug"):
+    #     st.write("today_str:", today_str)
+    #     st.write("iso_choice:", iso_choice)
         
-        # Test token
-        auths = ercot_token()
-        st.write("Token obtained:", auths is not None)
+    #     # Test token
+    #     auths = ercot_token()
+    #     st.write("Token obtained:", auths is not None)
         
-        if auths:
-            # Test raw API call bypassing cache
-            raw = _ercot_da_spp(today_str)
-            st.write("Raw _ercot_da_spp result:", raw)
+    #     if auths:
+    #         # Test raw API call bypassing cache
+    #         raw = _ercot_da_spp(today_str)
+    #         st.write("Raw _ercot_da_spp result:", raw)
             
-            # Test the URL directly
-            import requests
-            test_url = (
-                f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
-                f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
-                f"&settlementPoint=HB_NORTH&page=1&size=1000"
-            )
-            st.write("Testing URL:", test_url)
-            resp = requests.get(test_url, headers=auths, timeout=60)
-            st.write("Status code:", resp.status_code)
-            st.write("Response preview:", resp.text[:500])
+    #         # Test the URL directly
+    #         import requests
+    #         test_url = (
+    #             f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
+    #             f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
+    #             f"&settlementPoint=HB_NORTH&page=1&size=1000"
+    #         )
+    #         st.write("Testing URL:", test_url)
+    #         resp = requests.get(test_url, headers=auths, timeout=60)
+    #         st.write("Status code:", resp.status_code)
+    #         st.write("Response preview:", resp.text[:500])
         
-        if st.button("Clear DA cache"):
-            _bd_fetch_today_da.clear()
-            st.rerun()
-        if auths:
-            resp = requests.get(test_url, headers=auths, timeout=60)
-            result = resp.json()
+    #     if st.button("Clear DA cache"):
+    #         _bd_fetch_today_da.clear()
+    #         st.rerun()
+    #     if auths:
+    #         resp = requests.get(test_url, headers=auths, timeout=60)
+    #         result = resp.json()
             
-            st.write("Fields:", result.get("fields", []))
-            st.write("Data row count:", len(result.get("data", [])))
-            st.write("First data row:", result.get("data", [{}])[0] if result.get("data") else "empty")
-            st.write("Meta:", result.get("_meta", {}))
+    #         st.write("Fields:", result.get("fields", []))
+    #         st.write("Data row count:", len(result.get("data", [])))
+    #         st.write("First data row:", result.get("data", [{}])[0] if result.get("data") else "empty")
+    #         st.write("Meta:", result.get("_meta", {}))
             
-        # Bypass cache entirely
-        if iso_choice == "ERCOT":
-            direct = _ercot_da_spp(today_str)
-        else:
-            direct = _pjm_da_hourly(today_str)
-        st.write("Direct call result (bypassing cache):", direct)
-        if st.button("Force clear _bd_fetch_today_da cache"):
-            _bd_fetch_today_da.clear()
-            st.rerun()
+    #     # Bypass cache entirely
+    #     if iso_choice == "ERCOT":
+    #         direct = _ercot_da_spp(today_str)
+    #     else:
+    #         direct = _pjm_da_hourly(today_str)
+    #     st.write("Direct call result (bypassing cache):", direct)
+    #     if st.button("Force clear _bd_fetch_today_da cache"):
+    #         _bd_fetch_today_da.clear()
+    #         st.rerun()
             
-        # Trace through _ercot_da_spp parsing step by step
-        page_url = (
-            f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
-            f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
-            f"&settlementPoint=HB_NORTH&page=1&size=1000"
-        )
-        resp3 = requests.get(page_url, headers=auths, timeout=60)
-        result3 = resp3.json()
+    #     # Trace through _ercot_da_spp parsing step by step
+    #     page_url = (
+    #         f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
+    #         f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
+    #         f"&settlementPoint=HB_NORTH&page=1&size=1000"
+    #     )
+    #     resp3 = requests.get(page_url, headers=auths, timeout=60)
+    #     result3 = resp3.json()
         
-        fields = [f['name'] for f in result3.get("fields", [])]
-        all_data = result3.get("data", [])
+    #     fields = [f['name'] for f in result3.get("fields", [])]
+    #     all_data = result3.get("data", [])
         
-        st.write("Step 1 - fields:", fields)
-        st.write("Step 1 - row count:", len(all_data))
+    #     st.write("Step 1 - fields:", fields)
+    #     st.write("Step 1 - row count:", len(all_data))
         
-        df_test = pd.DataFrame(all_data, columns=fields)
-        st.write("Step 2 - dataframe shape:", df_test.shape)
-        st.write("Step 2 - dataframe head:", df_test.head())
+    #     df_test = pd.DataFrame(all_data, columns=fields)
+    #     st.write("Step 2 - dataframe shape:", df_test.shape)
+    #     st.write("Step 2 - dataframe head:", df_test.head())
         
-        # Check price column detection
-        price_col = None
-        for col in ['settlementPointPrice', 'SPP', 'DASpp', 'DAPrice']:
-            if col in df_test.columns:
-                price_col = col
-                break
-        st.write("Step 3 - price_col found:", price_col)
+    #     # Check price column detection
+    #     price_col = None
+    #     for col in ['settlementPointPrice', 'SPP', 'DASpp', 'DAPrice']:
+    #         if col in df_test.columns:
+    #             price_col = col
+    #             break
+    #     st.write("Step 3 - price_col found:", price_col)
         
-        # Check hour column detection
-        hour_col = None
-        for col in ['deliveryHour', 'hourEnding']:
-            if col in df_test.columns:
-                hour_col = col
-                break
-        st.write("Step 4 - hour_col found:", hour_col)
+    #     # Check hour column detection
+    #     hour_col = None
+    #     for col in ['deliveryHour', 'hourEnding']:
+    #         if col in df_test.columns:
+    #             hour_col = col
+    #             break
+    #     st.write("Step 4 - hour_col found:", hour_col)
         
-        # Check hour parsing
-        if hour_col:
-            st.write("Step 5 - hour column dtype:", df_test[hour_col].dtype)
-            st.write("Step 5 - hour column sample:", df_test[hour_col].head())
-            st.write("Step 5 - contains colon:", df_test[hour_col].astype(str).str.contains(':').any())
-            st.write("dtype ==  'object':", df_test[hour_col].dtype == 'object')
-            st.write("dtype is:", df_test[hour_col].dtype)
-        # Check after dropna
-        if price_col and hour_col:
-            df_test[price_col] = pd.to_numeric(df_test[price_col], errors='coerce')
-            if df_test[hour_col].dtype == 'object' and df_test[hour_col].astype(str).str.contains(':').any():
-                df_test['HE'] = df_test[hour_col].str.split(':').str[0].astype(int)
-            else:
-                df_test['HE'] = pd.to_numeric(df_test[hour_col], errors='coerce')
-            st.write("Step 6 - after HE parse, NaN count:", df_test['HE'].isna().sum())
-            st.write("Step 6 - after price parse, NaN count:", df_test[price_col].isna().sum())
-            df_test = df_test.dropna(subset=['HE', price_col])
-            st.write("Step 7 - after dropna, row count:", len(df_test))
+    #     # Check hour parsing
+    #     if hour_col:
+    #         st.write("Step 5 - hour column dtype:", df_test[hour_col].dtype)
+    #         st.write("Step 5 - hour column sample:", df_test[hour_col].head())
+    #         st.write("Step 5 - contains colon:", df_test[hour_col].astype(str).str.contains(':').any())
+    #         st.write("dtype ==  'object':", df_test[hour_col].dtype == 'object')
+    #         st.write("dtype is:", df_test[hour_col].dtype)
+    #     # Check after dropna
+    #     if price_col and hour_col:
+    #         df_test[price_col] = pd.to_numeric(df_test[price_col], errors='coerce')
+    #         if df_test[hour_col].dtype == 'object' and df_test[hour_col].astype(str).str.contains(':').any():
+    #             df_test['HE'] = df_test[hour_col].str.split(':').str[0].astype(int)
+    #         else:
+    #             df_test['HE'] = pd.to_numeric(df_test[hour_col], errors='coerce')
+    #         st.write("Step 6 - after HE parse, NaN count:", df_test['HE'].isna().sum())
+    #         st.write("Step 6 - after price parse, NaN count:", df_test[price_col].isna().sum())
+    #         df_test = df_test.dropna(subset=['HE', price_col])
+    #         st.write("Step 7 - after dropna, row count:", len(df_test))
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
