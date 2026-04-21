@@ -2627,7 +2627,7 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
