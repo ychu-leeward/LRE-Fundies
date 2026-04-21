@@ -791,7 +791,6 @@ def get_color_for_value(value, min_val, max_val, reverse=False):
     return f"rgb({r}, {g}, {b})"
 
 def check_password():
-
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
@@ -808,7 +807,6 @@ def check_password():
                 else:
                     st.error("Wrong password")
         st.stop()
-
 
 NEWS_CATEGORIES = {
     "ERCOT": {
@@ -2188,106 +2186,6 @@ def render_balday_tab(now_ct=None):
 
    
     da_df = None
-    # with st.expander("Debug"):
-    #     st.write("today_str:", today_str)
-    #     st.write("iso_choice:", iso_choice)
-        
-    #     # Test token
-    #     auths = ercot_token()
-    #     st.write("Token obtained:", auths is not None)
-        
-    #     if auths:
-    #         # Test raw API call bypassing cache
-    #         raw = _ercot_da_spp(today_str)
-    #         st.write("Raw _ercot_da_spp result:", raw)
-            
-    #         # Test the URL directly
-    #         import requests
-    #         test_url = (
-    #             f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
-    #             f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
-    #             f"&settlementPoint=HB_NORTH&page=1&size=1000"
-    #         )
-    #         st.write("Testing URL:", test_url)
-    #         resp = requests.get(test_url, headers=auths, timeout=60)
-    #         st.write("Status code:", resp.status_code)
-    #         st.write("Response preview:", resp.text[:500])
-        
-    #     if st.button("Clear DA cache"):
-    #         _bd_fetch_today_da.clear()
-    #         st.rerun()
-    #     if auths:
-    #         resp = requests.get(test_url, headers=auths, timeout=60)
-    #         result = resp.json()
-            
-    #         st.write("Fields:", result.get("fields", []))
-    #         st.write("Data row count:", len(result.get("data", [])))
-    #         st.write("First data row:", result.get("data", [{}])[0] if result.get("data") else "empty")
-    #         st.write("Meta:", result.get("_meta", {}))
-            
-    #     # Bypass cache entirely
-    #     if iso_choice == "ERCOT":
-    #         direct = _ercot_da_spp(today_str)
-    #     else:
-    #         direct = _pjm_da_hourly(today_str)
-    #     st.write("Direct call result (bypassing cache):", direct)
-    #     if st.button("Force clear _bd_fetch_today_da cache"):
-    #         _bd_fetch_today_da.clear()
-    #         st.rerun()
-            
-    #     # Trace through _ercot_da_spp parsing step by step
-    #     page_url = (
-    #         f"https://api.ercot.com/api/public-reports/np4-190-cd/dam_stlmnt_pnt_prices"
-    #         f"?deliveryDateFrom={today_str}&deliveryDateTo={today_str}"
-    #         f"&settlementPoint=HB_NORTH&page=1&size=1000"
-    #     )
-    #     resp3 = requests.get(page_url, headers=auths, timeout=60)
-    #     result3 = resp3.json()
-        
-    #     fields = [f['name'] for f in result3.get("fields", [])]
-    #     all_data = result3.get("data", [])
-        
-    #     st.write("Step 1 - fields:", fields)
-    #     st.write("Step 1 - row count:", len(all_data))
-        
-    #     df_test = pd.DataFrame(all_data, columns=fields)
-    #     st.write("Step 2 - dataframe shape:", df_test.shape)
-    #     st.write("Step 2 - dataframe head:", df_test.head())
-        
-    #     # Check price column detection
-    #     price_col = None
-    #     for col in ['settlementPointPrice', 'SPP', 'DASpp', 'DAPrice']:
-    #         if col in df_test.columns:
-    #             price_col = col
-    #             break
-    #     st.write("Step 3 - price_col found:", price_col)
-        
-    #     # Check hour column detection
-    #     hour_col = None
-    #     for col in ['deliveryHour', 'hourEnding']:
-    #         if col in df_test.columns:
-    #             hour_col = col
-    #             break
-    #     st.write("Step 4 - hour_col found:", hour_col)
-        
-    #     # Check hour parsing
-    #     if hour_col:
-    #         st.write("Step 5 - hour column dtype:", df_test[hour_col].dtype)
-    #         st.write("Step 5 - hour column sample:", df_test[hour_col].head())
-    #         st.write("Step 5 - contains colon:", df_test[hour_col].astype(str).str.contains(':').any())
-    #         st.write("dtype ==  'object':", df_test[hour_col].dtype == 'object')
-    #         st.write("dtype is:", df_test[hour_col].dtype)
-    #     # Check after dropna
-    #     if price_col and hour_col:
-    #         df_test[price_col] = pd.to_numeric(df_test[price_col], errors='coerce')
-    #         if df_test[hour_col].dtype == 'object' and df_test[hour_col].astype(str).str.contains(':').any():
-    #             df_test['HE'] = df_test[hour_col].str.split(':').str[0].astype(int)
-    #         else:
-    #             df_test['HE'] = pd.to_numeric(df_test[hour_col], errors='coerce')
-    #         st.write("Step 6 - after HE parse, NaN count:", df_test['HE'].isna().sum())
-    #         st.write("Step 6 - after price parse, NaN count:", df_test[price_col].isna().sum())
-    #         df_test = df_test.dropna(subset=['HE', price_col])
-    #         st.write("Step 7 - after dropna, row count:", len(df_test))
     try:
         da_df = _bd_fetch_today_da(iso_choice, today_str)
     except ValueError:
@@ -2426,12 +2324,9 @@ def render_balday_tab(now_ct=None):
             f'<div style="color:#aaa;font-size:12px;">RT Running: ${current_rt_trajectory:,.2f}</div></div>',
             unsafe_allow_html=True)
 
-
-
-
-
 def main():
-    check_password()
+    if not check_password():
+        st.stop()
     st.title("Fundies")
     try:
         tab1, tab2, tab5, tab6, tab3, tab4 = st.tabs(["ERCOT Weekly", "PJM Weekly", "ERCOT Reserves", "Bal-Day Calc", "Gas", "News"])
@@ -2596,11 +2491,11 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### ERCOT")
                 cols = st.columns(14)
@@ -2631,7 +2526,7 @@ def main():
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Wind - Onpeak (HE 7-22)")
                 
@@ -2682,11 +2577,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
 
                 # Regional Wind Popup
@@ -2794,11 +2689,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Outages")
                 if outage_df is not None and not outage_df.empty:
@@ -2826,11 +2721,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Peak Net Load")
                 if met_load_df is not None and met_wind_df is not None and met_solar_df is not None:
@@ -2892,11 +2787,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
 
                
                 if 'ercot_popup_date' in st.session_state:
@@ -3167,11 +3062,11 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### PJM RTO")
                 cols = st.columns(14)
@@ -3198,11 +3093,11 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
 
 
                 # Zone dropdown 
@@ -3265,11 +3160,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
                 st.markdown("### Solar")
                 if pjm_met_solar_df is not None and not pjm_met_solar_df.empty:
@@ -3299,11 +3194,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Outages")
                 if pjm_outage_df is not None and not pjm_outage_df.empty:
@@ -3331,11 +3226,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Peak Net Load")
                 if pjm_met_load_df is not None and pjm_met_wind_df is not None and pjm_met_solar_df is not None:
@@ -3365,11 +3260,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
                 st.markdown("### Peak Effective Net Load")
                 if pjm_met_load_df is not None and pjm_met_wind_df is not None and pjm_met_solar_df is not None and pjm_outage_df is not None:
@@ -3397,11 +3292,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
 
                 # Popup  for PJM date
                 if 'pjm_popup_date' in st.session_state:
