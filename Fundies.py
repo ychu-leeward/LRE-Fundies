@@ -3160,11 +3160,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
                 st.markdown("### Solar")
                 if pjm_met_solar_df is not None and not pjm_met_solar_df.empty:
@@ -3194,11 +3194,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Outages")
                 if pjm_outage_df is not None and not pjm_outage_df.empty:
@@ -3226,11 +3226,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Peak Net Load")
                 if pjm_met_load_df is not None and pjm_met_wind_df is not None and pjm_met_solar_df is not None:
@@ -3260,11 +3260,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
                 st.markdown("### Peak Effective Net Load")
                 if pjm_met_load_df is not None and pjm_met_wind_df is not None and pjm_met_solar_df is not None and pjm_outage_df is not None:
@@ -3292,11 +3292,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
 
                 # Popup  for PJM date
                 if 'pjm_popup_date' in st.session_state:
