@@ -791,27 +791,23 @@ def get_color_for_value(value, min_val, max_val, reverse=False):
     return f"rgb({r}, {g}, {b})"
 
 def check_password():
-    
-    
-    if st.query_params.get("auth") == "1":
-        return
-    
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-    
-    if not st.session_state.authenticated:
+
+    if "password_correct" not in st.session_state:
         st.title("Goat Farmers Only")
         with st.form("login_form"):
-            password = st.text_input("Password:", type="password", key="password_input")
-            submitted = st.form_submit_button("Login", type="primary")
-            if submitted:
-                if password == st.secrets.get("app", {}).get("password", ""):
-                    st.session_state.authenticated = True
-                    st.query_params["auth"] = "1"
-                    st.rerun()
-                else:
-                    st.error("Wrong password")
-        st.stop()
+            st.text_input(
+                "Password",
+                type="password",
+                key="password"
+            )
+    
+            if st.session_state.get("password") == st.secrets.get("app", {}).get("password", ""):
+                st.session_state["password_correct"] = True
+                st.rerun()
+
+        return False
+
+    return True
 
 
 NEWS_CATEGORIES = {
