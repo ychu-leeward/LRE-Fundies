@@ -2491,11 +2491,11 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### ERCOT")
                 cols = st.columns(14)
@@ -2522,11 +2522,11 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Wind - Onpeak (HE 7-22)")
                 
@@ -2577,11 +2577,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("---")
 
                 # Regional Wind Popup
@@ -2689,11 +2689,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Outages")
                 if outage_df is not None and not outage_df.empty:
@@ -2721,11 +2721,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### Peak Net Load")
                 if met_load_df is not None and met_wind_df is not None and met_solar_df is not None:
@@ -2787,11 +2787,11 @@ def main():
                             if delta is not None:
                                 st.markdown(f"""
                                     <div style='text-align: center; padding: 5px 3px;'>
-                                        <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                        <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
                             else:
-                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                                st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
 
                
                 if 'ercot_popup_date' in st.session_state:
@@ -3062,11 +3062,11 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
                 st.markdown("<hr style='border: none; border-top: 3px solid white; margin: 20px 0;'>", unsafe_allow_html=True)
                 st.markdown("### PJM RTO")
                 cols = st.columns(14)
@@ -3093,11 +3093,11 @@ def main():
                         if delta is not None:
                             st.markdown(f"""
                                 <div style='text-align: center; padding: 5px 3px;'>
-                                    <div style='font-size: 20px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
+                                    <div style='font-size: 12px; color: #ffffff; font-weight: bold;'>{delta:+,.0f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
                         else:
-                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 20px;'>N/A</div>", unsafe_allow_html=True)
+                            st.markdown("<div style='text-align: center; padding: 5px 3px; font-size: 12px;'>N/A</div>", unsafe_allow_html=True)
 
 
                 # Zone dropdown 
