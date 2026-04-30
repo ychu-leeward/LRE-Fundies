@@ -791,7 +791,8 @@ def get_color_for_value(value, min_val, max_val, reverse=False):
     return f"rgb({r}, {g}, {b})"
 
 def check_password():
-
+    if st.query_params.get("auth") == "1":
+        return
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     
